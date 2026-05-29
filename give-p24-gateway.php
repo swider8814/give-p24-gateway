@@ -2,9 +2,11 @@
 /**
  * Plugin Name: Give Przelewy24 Gateway
  * Description: Przelewy24 payment gateway for GiveWP/Give donations.
- * Version: 0.1.1
+ * Version: 0.1.2
  * Requires at least: 6.0
  * Requires PHP: 7.2
+ * Author: Daniel Świderski
+ * Author URI: https://8814.pl
  * Text Domain: give-p24-gateway
  */
 
@@ -19,7 +21,8 @@ use Give\Framework\PaymentGateways\Commands\PaymentRefunded;
 use Give\Framework\PaymentGateways\Commands\RedirectOffsite;
 use Give\Framework\PaymentGateways\PaymentGateway;
 
-const GIVE_P24_OPTION = 'give_p24_options';
+const GIVE_P24_GATEWAY_OPTION = 'give_p24_gateway_options';
+const GIVE_P24_GATEWAY_LEGACY_OPTION = 'give_p24_options';
 
 add_action('plugins_loaded', static function () {
     load_plugin_textdomain('give-p24-gateway', false, dirname(plugin_basename(__FILE__)) . '/languages');
@@ -36,17 +39,17 @@ add_filter('give_get_settings_gateways', static function (array $settings): arra
         return $settings;
     }
 
-    return give_p24_give_settings();
+    return give_p24_gateway_give_settings();
 });
 
-add_filter('give_admin_field_get_value', 'give_p24_get_give_setting_value', 10, 4);
-add_filter('give_admin_settings_sanitize_option_' . GIVE_P24_OPTION, 'give_p24_sanitize_give_setting_value', 10, 3);
+add_filter('give_admin_field_get_value', 'give_p24_gateway_get_give_setting_value', 10, 4);
+add_filter('give_admin_settings_sanitize_option_' . GIVE_P24_GATEWAY_OPTION, 'give_p24_gateway_sanitize_give_setting_value', 10, 3);
 add_filter('give_save_options_gateways_przelewy24', '__return_false');
-add_action('give_update_options_gateways_przelewy24', 'give_p24_save_give_settings');
-add_action('admin_init', 'give_p24_handle_test_access');
-add_action('give_admin_field_give_p24_test_access', 'give_p24_render_test_access_field', 10, 2);
+add_action('give_update_options_gateways_przelewy24', 'give_p24_gateway_save_give_settings');
+add_action('admin_init', 'give_p24_gateway_handle_test_access');
+add_action('give_admin_field_give_p24_gateway_test_access', 'give_p24_gateway_render_test_access_field', 10, 2);
 
-function give_p24_default_options(): array
+function give_p24_gateway_default_options(): array
 {
     return [
         'mode' => 'sandbox',
@@ -57,15 +60,27 @@ function give_p24_default_options(): array
     ];
 }
 
-function give_p24_options(): array
+function give_p24_gateway_options(): array
 {
-    return array_merge(give_p24_default_options(), (array) get_option(GIVE_P24_OPTION, []));
+    $options = get_option(GIVE_P24_GATEWAY_OPTION, false);
+
+    if ($options === false) {
+        $legacy_options = get_option(GIVE_P24_GATEWAY_LEGACY_OPTION, false);
+
+        if (is_array($legacy_options)) {
+            update_option(GIVE_P24_GATEWAY_OPTION, $legacy_options, false);
+            delete_option(GIVE_P24_GATEWAY_LEGACY_OPTION);
+            $options = $legacy_options;
+        }
+    }
+
+    return array_merge(give_p24_gateway_default_options(), (array) $options);
 }
 
-function give_p24_sanitize_options($input): array
+function give_p24_gateway_sanitize_options($input): array
 {
     $input = (array) $input;
-    $current = give_p24_options();
+    $current = give_p24_gateway_options();
 
     return [
         'mode' => (($input['mode'] ?? 'sandbox') === 'production') ? 'production' : 'sandbox',
@@ -76,19 +91,19 @@ function give_p24_sanitize_options($input): array
     ];
 }
 
-function give_p24_give_settings(): array
+function give_p24_gateway_give_settings(): array
 {
-    $options = give_p24_options();
+    $options = give_p24_gateway_options();
 
     return [
         [
-            'id' => 'give_p24_settings',
+            'id' => 'give_p24_gateway_settings',
             'type' => 'title',
             'title' => __('Przelewy24 Settings', 'give-p24-gateway'),
             'desc' => __('Configure Przelewy24 credentials for sandbox or production payments.', 'give-p24-gateway'),
         ],
         [
-            'id' => GIVE_P24_OPTION . '[mode]',
+            'id' => GIVE_P24_GATEWAY_OPTION . '[mode]',
             'name' => __('Mode', 'give-p24-gateway'),
             'type' => 'select',
             'default' => $options['mode'],
@@ -98,8 +113,8 @@ function give_p24_give_settings(): array
             ],
         ],
         [
-            'id' => GIVE_P24_OPTION . '[merchant_id]',
-            'name' => give_p24_required_label(__('Merchant ID', 'give-p24-gateway')),
+            'id' => GIVE_P24_GATEWAY_OPTION . '[merchant_id]',
+            'name' => give_p24_gateway_required_label(__('Merchant ID', 'give-p24-gateway')),
             'type' => 'text',
             'default' => $options['merchant_id'],
             'attributes' => [
@@ -108,8 +123,8 @@ function give_p24_give_settings(): array
             ],
         ],
         [
-            'id' => GIVE_P24_OPTION . '[pos_id]',
-            'name' => give_p24_required_label(__('POS ID', 'give-p24-gateway')),
+            'id' => GIVE_P24_GATEWAY_OPTION . '[pos_id]',
+            'name' => give_p24_gateway_required_label(__('POS ID', 'give-p24-gateway')),
             'type' => 'text',
             'default' => $options['pos_id'],
             'attributes' => [
@@ -118,8 +133,8 @@ function give_p24_give_settings(): array
             ],
         ],
         [
-            'id' => GIVE_P24_OPTION . '[api_key]',
-            'name' => give_p24_required_label(__('API key / secretId', 'give-p24-gateway')),
+            'id' => GIVE_P24_GATEWAY_OPTION . '[api_key]',
+            'name' => give_p24_gateway_required_label(__('API key / secretId', 'give-p24-gateway')),
             'type' => 'password',
             'default' => '',
             'desc' => $options['api_key'] ? __('Saved. Leave as *** to keep the current key.', 'give-p24-gateway') : '',
@@ -128,8 +143,8 @@ function give_p24_give_settings(): array
             ],
         ],
         [
-            'id' => GIVE_P24_OPTION . '[crc_key]',
-            'name' => give_p24_required_label(__('CRC key', 'give-p24-gateway')),
+            'id' => GIVE_P24_GATEWAY_OPTION . '[crc_key]',
+            'name' => give_p24_gateway_required_label(__('CRC key', 'give-p24-gateway')),
             'type' => 'password',
             'default' => '',
             'desc' => $options['crc_key'] ? __('Saved. Leave as *** to keep the current key.', 'give-p24-gateway') : '',
@@ -138,18 +153,18 @@ function give_p24_give_settings(): array
             ],
         ],
         [
-            'id' => 'give_p24_test_access',
+            'id' => 'give_p24_gateway_test_access',
             'name' => __('Test connection', 'give-p24-gateway'),
-            'type' => 'give_p24_test_access',
+            'type' => 'give_p24_gateway_test_access',
         ],
         [
-            'id' => 'give_p24_settings',
+            'id' => 'give_p24_gateway_settings',
             'type' => 'sectionend',
         ],
     ];
 }
 
-function give_p24_required_label(string $label): string
+function give_p24_gateway_required_label(string $label): string
 {
     return sprintf(
         '%s <span class="give-required-indicator" aria-hidden="true">*</span><span class="screen-reader-text">%s</span>',
@@ -158,10 +173,10 @@ function give_p24_required_label(string $label): string
     );
 }
 
-function give_p24_get_give_setting_value($value, string $option_name, string $field_id, $default)
+function give_p24_gateway_get_give_setting_value($value, string $option_name, string $field_id, $default)
 {
-    if (preg_match('/^' . preg_quote(GIVE_P24_OPTION, '/') . '\[([a-z_]+)\]$/', $field_id, $matches)) {
-        $options = give_p24_options();
+    if (preg_match('/^' . preg_quote(GIVE_P24_GATEWAY_OPTION, '/') . '\[([a-z_]+)\]$/', $field_id, $matches)) {
+        $options = give_p24_gateway_options();
 
         if (in_array($matches[1], ['api_key', 'crc_key'], true)) {
             return $options[$matches[1]] !== '' ? '***' : '';
@@ -173,14 +188,14 @@ function give_p24_get_give_setting_value($value, string $option_name, string $fi
     return $value;
 }
 
-function give_p24_sanitize_give_setting_value($value, array $option, $raw_value)
+function give_p24_gateway_sanitize_give_setting_value($value, array $option, $raw_value)
 {
-    if (empty($option['id']) || !preg_match('/^' . preg_quote(GIVE_P24_OPTION, '/') . '\[([a-z_]+)\]$/', $option['id'], $matches)) {
+    if (empty($option['id']) || !preg_match('/^' . preg_quote(GIVE_P24_GATEWAY_OPTION, '/') . '\[([a-z_]+)\]$/', $option['id'], $matches)) {
         return $value;
     }
 
     $key = $matches[1];
-    $current = give_p24_options();
+    $current = give_p24_gateway_options();
 
     if ($key === 'mode') {
         return $raw_value === 'production' ? 'production' : 'sandbox';
@@ -197,10 +212,10 @@ function give_p24_sanitize_give_setting_value($value, array $option, $raw_value)
     return null;
 }
 
-function give_p24_save_give_settings(): void
+function give_p24_gateway_save_give_settings(): void
 {
-    $raw = isset($_POST[GIVE_P24_OPTION]) ? wp_unslash($_POST[GIVE_P24_OPTION]) : [];
-    $options = give_p24_sanitize_options((array) $raw);
+    $raw = isset($_POST[GIVE_P24_GATEWAY_OPTION]) ? wp_unslash($_POST[GIVE_P24_GATEWAY_OPTION]) : [];
+    $options = give_p24_gateway_sanitize_options((array) $raw);
 
     foreach (['merchant_id', 'pos_id', 'api_key', 'crc_key'] as $key) {
         if ($options[$key] === '') {
@@ -213,11 +228,11 @@ function give_p24_save_give_settings(): void
         }
     }
 
-    update_option(GIVE_P24_OPTION, $options, false);
+    update_option(GIVE_P24_GATEWAY_OPTION, $options, false);
 }
 
 add_action('givewp_register_payment_gateway', static function ($registrar) {
-    give_p24_register_gateway_class();
+    give_p24_gateway_register_gateway_class();
 
     if (class_exists('GiveP24Gateway')) {
         $registrar->registerGateway(GiveP24Gateway::class);
@@ -227,26 +242,26 @@ add_action('givewp_register_payment_gateway', static function ($registrar) {
 add_action('rest_api_init', static function () {
     register_rest_route('give-p24-gateway/v1', '/status', [
         'methods' => 'POST',
-        'callback' => 'give_p24_handle_status',
+        'callback' => 'give_p24_gateway_handle_status',
         'permission_callback' => '__return_true',
     ]);
 });
 
-function give_p24_base_url(): string
+function give_p24_gateway_base_url(): string
 {
-    return give_p24_options()['mode'] === 'production'
+    return give_p24_gateway_options()['mode'] === 'production'
         ? 'https://secure.przelewy24.pl'
         : 'https://sandbox.przelewy24.pl';
 }
 
-function give_p24_sign(array $params): string
+function give_p24_gateway_sign(array $params): string
 {
     return hash('sha384', wp_json_encode($params, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
 }
 
-function give_p24_request(string $method, string $path, array $body)
+function give_p24_gateway_request(string $method, string $path, array $body)
 {
-    $options = give_p24_options();
+    $options = give_p24_gateway_options();
     $args = [
         'method' => $method,
         'headers' => [
@@ -260,7 +275,7 @@ function give_p24_request(string $method, string $path, array $body)
         $args['body'] = wp_json_encode($body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 
-    $response = wp_remote_request(give_p24_base_url() . $path, $args);
+    $response = wp_remote_request(give_p24_gateway_base_url() . $path, $args);
 
     if (is_wp_error($response)) {
         return $response;
@@ -270,44 +285,44 @@ function give_p24_request(string $method, string $path, array $body)
     return is_array($decoded) ? $decoded : [];
 }
 
-function give_p24_test_access()
+function give_p24_gateway_test_access()
 {
-    return give_p24_request('GET', '/api/v1/testAccess', []);
+    return give_p24_gateway_request('GET', '/api/v1/testAccess', []);
 }
 
-function give_p24_handle_test_access(): void
+function give_p24_gateway_handle_test_access(): void
 {
     if (
         !is_admin()
         || !current_user_can('manage_options')
-        || empty($_GET['give_p24_test_access'])
+        || empty($_GET['give_p24_gateway_test_access'])
         || empty($_GET['_wpnonce'])
-        || !wp_verify_nonce(sanitize_text_field(wp_unslash($_GET['_wpnonce'])), 'give_p24_test_access')
+        || !wp_verify_nonce(sanitize_text_field(wp_unslash($_GET['_wpnonce'])), 'give_p24_gateway_test_access')
     ) {
         return;
     }
 
-    $result = give_p24_test_access();
+    $result = give_p24_gateway_test_access();
     $status = (!is_wp_error($result) && !empty($result['data'])) ? 'success' : 'failed';
 
-    give_p24_log('TestAccess result.', [
+    give_p24_gateway_log('TestAccess result.', [
         'status' => $status,
         'response' => is_wp_error($result) ? $result->get_error_message() : $result,
     ]);
 
-    $redirect_url = give_p24_settings_url();
-    $redirect_url = add_query_arg('give_p24_test_access_result', $status, $redirect_url);
+    $redirect_url = give_p24_gateway_settings_url();
+    $redirect_url = add_query_arg('give_p24_gateway_test_access_result', $status, $redirect_url);
 
     wp_safe_redirect($redirect_url);
     exit;
 }
 
-function give_p24_render_test_access_field(array $field, $settings = null): void
+function give_p24_gateway_render_test_access_field(array $field, $settings = null): void
 {
-    $result = ($_SERVER['REQUEST_METHOD'] ?? '') === 'GET' && isset($_GET['give_p24_test_access_result'])
-        ? sanitize_key(wp_unslash($_GET['give_p24_test_access_result']))
+    $result = ($_SERVER['REQUEST_METHOD'] ?? '') === 'GET' && isset($_GET['give_p24_gateway_test_access_result'])
+        ? sanitize_key(wp_unslash($_GET['give_p24_gateway_test_access_result']))
         : '';
-    $url = wp_nonce_url(add_query_arg('give_p24_test_access', '1', give_p24_settings_url()), 'give_p24_test_access');
+    $url = wp_nonce_url(add_query_arg('give_p24_gateway_test_access', '1', give_p24_gateway_settings_url()), 'give_p24_gateway_test_access');
     ?>
     <tr valign="top">
         <th scope="row" class="titledesc">
@@ -327,7 +342,7 @@ function give_p24_render_test_access_field(array $field, $settings = null): void
     <?php
 }
 
-function give_p24_settings_url(): string
+function give_p24_gateway_settings_url(): string
 {
     return add_query_arg(
         [
@@ -340,7 +355,7 @@ function give_p24_settings_url(): string
     );
 }
 
-function give_p24_log(string $message, array $context = []): void
+function give_p24_gateway_log(string $message, array $context = []): void
 {
     $line = $message . ($context ? ' ' . wp_json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : '');
 
@@ -352,7 +367,7 @@ function give_p24_log(string $message, array $context = []): void
     error_log('[Give Przelewy24] ' . $line);
 }
 
-function give_p24_amount_to_minor($amount): int
+function give_p24_gateway_amount_to_minor($amount): int
 {
     $decimal = is_object($amount) && method_exists($amount, 'formatToDecimal')
         ? $amount->formatToDecimal()
@@ -361,24 +376,24 @@ function give_p24_amount_to_minor($amount): int
     return (int) round(((float) $decimal) * 100);
 }
 
-function give_p24_parse_donation_id(string $session_id): int
+function give_p24_gateway_parse_donation_id(string $session_id): int
 {
     return preg_match('/^give-([0-9]+)-/', $session_id, $matches) ? (int) $matches[1] : 0;
 }
 
-function give_p24_handle_status(WP_REST_Request $request): WP_REST_Response
+function give_p24_gateway_handle_status(WP_REST_Request $request): WP_REST_Response
 {
     $payload = (array) $request->get_json_params();
-    $options = give_p24_options();
+    $options = give_p24_gateway_options();
 
-    give_p24_log('Webhook received.', [
+    give_p24_gateway_log('Webhook received.', [
         'sessionId' => (string) ($payload['sessionId'] ?? ''),
         'orderId' => (int) ($payload['orderId'] ?? 0),
         'amount' => (int) ($payload['amount'] ?? 0),
         'currency' => (string) ($payload['currency'] ?? ''),
     ]);
 
-    $expected_sign = give_p24_sign([
+    $expected_sign = give_p24_gateway_sign([
         'merchantId' => (int) ($payload['merchantId'] ?? 0),
         'posId' => (int) ($payload['posId'] ?? 0),
         'sessionId' => (string) ($payload['sessionId'] ?? ''),
@@ -392,7 +407,7 @@ function give_p24_handle_status(WP_REST_Request $request): WP_REST_Response
     ]);
 
     if (empty($payload['sign']) || !hash_equals($expected_sign, (string) $payload['sign'])) {
-        give_p24_log('Webhook rejected: invalid sign.', [
+        give_p24_gateway_log('Webhook rejected: invalid sign.', [
             'sessionId' => (string) ($payload['sessionId'] ?? ''),
             'orderId' => (int) ($payload['orderId'] ?? 0),
         ]);
@@ -400,7 +415,7 @@ function give_p24_handle_status(WP_REST_Request $request): WP_REST_Response
         return new WP_REST_Response(['error' => 'Invalid sign'], 400);
     }
 
-    $donation_id = give_p24_parse_donation_id((string) ($payload['sessionId'] ?? ''));
+    $donation_id = give_p24_gateway_parse_donation_id((string) ($payload['sessionId'] ?? ''));
     if (!$donation_id || !class_exists(Donation::class)) {
         return new WP_REST_Response(['error' => 'Donation not found'], 404);
     }
@@ -413,7 +428,7 @@ function give_p24_handle_status(WP_REST_Request $request): WP_REST_Response
         'currency' => (string) $payload['currency'],
         'orderId' => (int) $payload['orderId'],
     ];
-    $verify_body['sign'] = give_p24_sign([
+    $verify_body['sign'] = give_p24_gateway_sign([
         'sessionId' => $verify_body['sessionId'],
         'orderId' => $verify_body['orderId'],
         'amount' => $verify_body['amount'],
@@ -421,9 +436,9 @@ function give_p24_handle_status(WP_REST_Request $request): WP_REST_Response
         'crc' => $options['crc_key'],
     ]);
 
-    $verified = give_p24_request('PUT', '/api/v1/transaction/verify', $verify_body);
+    $verified = give_p24_gateway_request('PUT', '/api/v1/transaction/verify', $verify_body);
     if (is_wp_error($verified) || ((int) ($verified['responseCode'] ?? -1) !== 0)) {
-        give_p24_log('Transaction verification failed.', [
+        give_p24_gateway_log('Transaction verification failed.', [
             'sessionId' => $verify_body['sessionId'],
             'orderId' => $verify_body['orderId'],
             'response' => is_wp_error($verified) ? $verified->get_error_message() : $verified,
@@ -432,7 +447,7 @@ function give_p24_handle_status(WP_REST_Request $request): WP_REST_Response
         return new WP_REST_Response(['error' => 'Verification failed'], 400);
     }
 
-    give_p24_log('Transaction verified.', [
+    give_p24_gateway_log('Transaction verified.', [
         'donationId' => $donation_id,
         'sessionId' => $verify_body['sessionId'],
         'orderId' => $verify_body['orderId'],
@@ -447,8 +462,8 @@ function give_p24_handle_status(WP_REST_Request $request): WP_REST_Response
     $donation->gatewayTransactionId = (string) $payload['orderId'];
     $donation->save();
 
-    update_post_meta($donation_id, '_give_p24_session_id', (string) $payload['sessionId']);
-    update_post_meta($donation_id, '_give_p24_order_id', (int) $payload['orderId']);
+    update_post_meta($donation_id, '_give_p24_gateway_session_id', (string) $payload['sessionId']);
+    update_post_meta($donation_id, '_give_p24_gateway_order_id', (int) $payload['orderId']);
 
     DonationNote::create([
         'donationId' => $donation_id,
@@ -458,7 +473,7 @@ function give_p24_handle_status(WP_REST_Request $request): WP_REST_Response
     return new WP_REST_Response(['status' => 'ok'], 200);
 }
 
-function give_p24_register_gateway_class(): void
+function give_p24_gateway_register_gateway_class(): void
 {
     if (class_exists('GiveP24Gateway', false) || !class_exists(PaymentGateway::class)) {
         return;
@@ -511,14 +526,14 @@ function give_p24_register_gateway_class(): void
 
         public function createPayment(Donation $donation, $gatewayData)
         {
-            $options = give_p24_options();
+            $options = give_p24_gateway_options();
             foreach (['merchant_id', 'pos_id', 'api_key', 'crc_key'] as $key) {
                 if ($options[$key] === '') {
                     throw new Exception(__('Przelewy24 gateway is not configured.', 'give-p24-gateway'));
                 }
             }
 
-            $amount = give_p24_amount_to_minor($donation->amount);
+            $amount = give_p24_gateway_amount_to_minor($donation->amount);
             $currency = 'PLN';
             $session_id = sprintf('give-%d-%s', $donation->id, wp_generate_uuid4());
 
@@ -536,7 +551,7 @@ function give_p24_register_gateway_class(): void
                 'urlReturn' => give_get_success_page_uri(),
                 'urlStatus' => rest_url('give-p24-gateway/v1/status'),
             ];
-            $body['sign'] = give_p24_sign([
+            $body['sign'] = give_p24_gateway_sign([
                 'sessionId' => $session_id,
                 'merchantId' => (int) $options['merchant_id'],
                 'amount' => $amount,
@@ -544,9 +559,9 @@ function give_p24_register_gateway_class(): void
                 'crc' => $options['crc_key'],
             ]);
 
-            $registered = give_p24_request('POST', '/api/v1/transaction/register', $body);
+            $registered = give_p24_gateway_request('POST', '/api/v1/transaction/register', $body);
             if (is_wp_error($registered) || empty($registered['data']['token'])) {
-                give_p24_log('Transaction registration failed.', [
+                give_p24_gateway_log('Transaction registration failed.', [
                     'donationId' => $donation->id,
                     'sessionId' => $session_id,
                     'response' => is_wp_error($registered) ? $registered->get_error_message() : $registered,
@@ -555,16 +570,16 @@ function give_p24_register_gateway_class(): void
                 throw new Exception(__('Przelewy24 transaction registration failed.', 'give-p24-gateway'));
             }
 
-            give_p24_log('Transaction registered.', [
+            give_p24_gateway_log('Transaction registered.', [
                 'donationId' => $donation->id,
                 'sessionId' => $session_id,
                 'amount' => $amount,
                 'currency' => $currency,
             ]);
 
-            update_post_meta($donation->id, '_give_p24_session_id', $session_id);
+            update_post_meta($donation->id, '_give_p24_gateway_session_id', $session_id);
 
-            return new RedirectOffsite(give_p24_base_url() . '/trnRequest/' . rawurlencode($registered['data']['token']));
+            return new RedirectOffsite(give_p24_gateway_base_url() . '/trnRequest/' . rawurlencode($registered['data']['token']));
         }
 
         public function refundDonation(Donation $donation): PaymentRefunded
