@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Give Przelewy24 Gateway
  * Description: Przelewy24 payment gateway for GiveWP/Give donations.
- * Version: 0.1.5
+ * Version: 0.1.6
  * Requires at least: 6.0
  * Requires PHP: 7.2
  * Author: Daniel Świderski
@@ -398,6 +398,15 @@ function give_p24_gateway_transaction_description(Donation $donation): string
     return mb_substr(sprintf(__('Donation #%s', 'give-p24-gateway'), $donation->id), 0, 128);
 }
 
+function give_p24_gateway_payment_note(string $transaction_id): string
+{
+    if ($transaction_id !== '') {
+        return sprintf(__('Przelewy24 payment verified (transaction %s).', 'give-p24-gateway'), $transaction_id);
+    }
+
+    return __('Przelewy24 payment verified.', 'give-p24-gateway');
+}
+
 function give_p24_gateway_handle_status(WP_REST_Request $request): WP_REST_Response
 {
     $payload = (array) $request->get_json_params();
@@ -479,12 +488,16 @@ function give_p24_gateway_handle_status(WP_REST_Request $request): WP_REST_Respo
     $donation->gatewayTransactionId = (string) $payload['orderId'];
     $donation->save();
 
+    $transaction = give_p24_gateway_request('GET', '/api/v1/transaction/by/sessionId/' . rawurlencode((string) $payload['sessionId']), []);
+    $transaction_id = is_wp_error($transaction) ? '' : sanitize_text_field((string) ($transaction['data']['statement'] ?? ''));
+
     update_post_meta($donation_id, '_give_p24_gateway_session_id', (string) $payload['sessionId']);
     update_post_meta($donation_id, '_give_p24_gateway_order_id', (int) $payload['orderId']);
+    update_post_meta($donation_id, '_give_p24_gateway_transaction_id', $transaction_id);
 
     DonationNote::create([
         'donationId' => $donation_id,
-        'content' => sprintf(__('Przelewy24 payment verified. Order ID: %s', 'give-p24-gateway'), (string) $payload['orderId']),
+        'content' => give_p24_gateway_payment_note($transaction_id),
     ]);
 
     return new WP_REST_Response(['status' => 'ok'], 200);
