@@ -137,8 +137,8 @@ function give_p24_get_give_setting_value($value, string $option_name, string $fi
     if (preg_match('/^' . preg_quote(GIVE_P24_OPTION, '/') . '\[([a-z_]+)\]$/', $field_id, $matches)) {
         $options = give_p24_options();
 
-        if (in_array($matches[1], ['api_key', 'crc_key'], true) && $options[$matches[1]] !== '') {
-            return '********';
+        if (in_array($matches[1], ['api_key', 'crc_key'], true)) {
+            return '';
         }
 
         return $options[$matches[1]] ?? $default;
@@ -165,7 +165,7 @@ function give_p24_sanitize_give_setting_value($value, array $option, $raw_value)
     }
 
     if (in_array($key, ['api_key', 'crc_key'], true)) {
-        return ($raw_value === '' || $raw_value === '********') ? $current[$key] : sanitize_text_field((string) $raw_value);
+        return $raw_value === '' ? $current[$key] : sanitize_text_field((string) $raw_value);
     }
 
     return null;
