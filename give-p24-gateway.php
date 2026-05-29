@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Give Przelewy24 Gateway
  * Description: Przelewy24 payment gateway for GiveWP/Give donations.
- * Version: 0.1.2
+ * Version: 0.1.3
  * Requires at least: 6.0
  * Requires PHP: 7.2
  * Author: Daniel Świderski
@@ -308,7 +308,7 @@ function give_p24_gateway_handle_test_access(): void
     give_p24_gateway_log('TestAccess result.', [
         'status' => $status,
         'response' => is_wp_error($result) ? $result->get_error_message() : $result,
-    ]);
+    ], $status === 'success' ? 'success' : 'warning');
 
     $redirect_url = give_p24_gateway_settings_url();
     $redirect_url = add_query_arg('give_p24_gateway_test_access_result', $status, $redirect_url);
@@ -355,12 +355,18 @@ function give_p24_gateway_settings_url(): string
     );
 }
 
-function give_p24_gateway_log(string $message, array $context = []): void
+function give_p24_gateway_log(string $message, array $context = [], string $type = 'info'): void
 {
     $line = $message . ($context ? ' ' . wp_json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : '');
 
+    if (class_exists('\Give\Log\LogFactory') && in_array($type, ['error', 'warning', 'notice', 'success', 'info', 'debug'], true)) {
+        \Give\Log\LogFactory::make($type, $message, 'Payment', 'Przelewy24', $context)->save();
+
+        return;
+    }
+
     if (function_exists('give_record_log')) {
-        give_record_log('Przelewy24', $line, 0, 'info');
+        give_record_log('Przelewy24', $line, 0, $type);
         return;
     }
 
@@ -410,7 +416,7 @@ function give_p24_gateway_handle_status(WP_REST_Request $request): WP_REST_Respo
         give_p24_gateway_log('Webhook rejected: invalid sign.', [
             'sessionId' => (string) ($payload['sessionId'] ?? ''),
             'orderId' => (int) ($payload['orderId'] ?? 0),
-        ]);
+        ], 'error');
 
         return new WP_REST_Response(['error' => 'Invalid sign'], 400);
     }
@@ -442,7 +448,7 @@ function give_p24_gateway_handle_status(WP_REST_Request $request): WP_REST_Respo
             'sessionId' => $verify_body['sessionId'],
             'orderId' => $verify_body['orderId'],
             'response' => is_wp_error($verified) ? $verified->get_error_message() : $verified,
-        ]);
+        ], 'error');
 
         return new WP_REST_Response(['error' => 'Verification failed'], 400);
     }
@@ -451,7 +457,7 @@ function give_p24_gateway_handle_status(WP_REST_Request $request): WP_REST_Respo
         'donationId' => $donation_id,
         'sessionId' => $verify_body['sessionId'],
         'orderId' => $verify_body['orderId'],
-    ]);
+    ], 'success');
 
     $donation = Donation::find($donation_id);
     if (!$donation) {
@@ -565,7 +571,7 @@ function give_p24_gateway_register_gateway_class(): void
                     'donationId' => $donation->id,
                     'sessionId' => $session_id,
                     'response' => is_wp_error($registered) ? $registered->get_error_message() : $registered,
-                ]);
+                ], 'error');
 
                 throw new Exception(__('Przelewy24 transaction registration failed.', 'give-p24-gateway'));
             }
@@ -575,7 +581,7 @@ function give_p24_gateway_register_gateway_class(): void
                 'sessionId' => $session_id,
                 'amount' => $amount,
                 'currency' => $currency,
-            ]);
+            ], 'success');
 
             update_post_meta($donation->id, '_give_p24_gateway_session_id', $session_id);
 
