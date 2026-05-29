@@ -44,7 +44,7 @@ add_filter('give_admin_settings_sanitize_option_' . GIVE_P24_OPTION, 'give_p24_s
 add_filter('give_save_options_gateways_przelewy24', '__return_false');
 add_action('give_update_options_gateways_przelewy24', 'give_p24_save_give_settings');
 add_action('admin_init', 'give_p24_handle_test_access');
-add_action('give_admin_field_give_p24_test_access', 'give_p24_render_test_access_field');
+add_action('give_admin_field_give_p24_test_access', 'give_p24_render_test_access_field', 10, 2);
 
 function give_p24_default_options(): array
 {
@@ -302,7 +302,7 @@ function give_p24_handle_test_access(): void
     exit;
 }
 
-function give_p24_render_test_access_field(array $field, array $settings): void
+function give_p24_render_test_access_field(array $field, $settings = null): void
 {
     $result = isset($_GET['give_p24_test_access_result']) ? sanitize_key(wp_unslash($_GET['give_p24_test_access_result'])) : '';
     $url = wp_nonce_url(add_query_arg('give_p24_test_access', '1'), 'give_p24_test_access');
