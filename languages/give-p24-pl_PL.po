@@ -42,6 +42,9 @@ msgstr "Klucz API / secretId"
 msgid "CRC key"
 msgstr "Klucz CRC"
 
+msgid "required"
+msgstr "wymagane"
+
 msgid "Saved - leave blank to keep"
 msgstr "Zapisano – pozostaw puste, aby zachować"
 

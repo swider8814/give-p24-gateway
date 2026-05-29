@@ -41,6 +41,9 @@ msgstr ""
 msgid "CRC key"
 msgstr ""
 
+msgid "required"
+msgstr ""
+
 msgid "Saved - leave blank to keep"
 msgstr ""
 

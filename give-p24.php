@@ -97,7 +97,7 @@ function give_p24_give_settings(): array
         ],
         [
             'id' => GIVE_P24_OPTION . '[merchant_id]',
-            'name' => __('Merchant ID', 'give-p24'),
+            'name' => give_p24_required_label(__('Merchant ID', 'give-p24')),
             'type' => 'text',
             'default' => $options['merchant_id'],
             'attributes' => [
@@ -107,7 +107,7 @@ function give_p24_give_settings(): array
         ],
         [
             'id' => GIVE_P24_OPTION . '[pos_id]',
-            'name' => __('POS ID', 'give-p24'),
+            'name' => give_p24_required_label(__('POS ID', 'give-p24')),
             'type' => 'text',
             'default' => $options['pos_id'],
             'attributes' => [
@@ -117,7 +117,7 @@ function give_p24_give_settings(): array
         ],
         [
             'id' => GIVE_P24_OPTION . '[api_key]',
-            'name' => __('API key / secretId', 'give-p24'),
+            'name' => give_p24_required_label(__('API key / secretId', 'give-p24')),
             'type' => 'password',
             'default' => '',
             'desc' => $options['api_key'] ? __('Saved. Leave as *** to keep the current key.', 'give-p24') : '',
@@ -127,7 +127,7 @@ function give_p24_give_settings(): array
         ],
         [
             'id' => GIVE_P24_OPTION . '[crc_key]',
-            'name' => __('CRC key', 'give-p24'),
+            'name' => give_p24_required_label(__('CRC key', 'give-p24')),
             'type' => 'password',
             'default' => '',
             'desc' => $options['crc_key'] ? __('Saved. Leave as *** to keep the current key.', 'give-p24') : '',
@@ -140,6 +140,15 @@ function give_p24_give_settings(): array
             'type' => 'sectionend',
         ],
     ];
+}
+
+function give_p24_required_label(string $label): string
+{
+    return sprintf(
+        '%s <span class="give-required-indicator" aria-hidden="true">*</span><span class="screen-reader-text">%s</span>',
+        esc_html($label),
+        esc_html__('required', 'give-p24')
+    );
 }
 
 function give_p24_get_give_setting_value($value, string $option_name, string $field_id, $default)
