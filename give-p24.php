@@ -71,8 +71,8 @@ function give_p24_sanitize_options($input): array
         'mode' => (($input['mode'] ?? 'sandbox') === 'production') ? 'production' : 'sandbox',
         'merchant_id' => preg_replace('/\D+/', '', (string) ($input['merchant_id'] ?? '')),
         'pos_id' => preg_replace('/\D+/', '', (string) ($input['pos_id'] ?? '')),
-        'api_key' => ($input['api_key'] ?? '') === '' ? $current['api_key'] : sanitize_text_field($input['api_key']),
-        'crc_key' => ($input['crc_key'] ?? '') === '' ? $current['crc_key'] : sanitize_text_field($input['crc_key']),
+        'api_key' => in_array(($input['api_key'] ?? ''), ['', '***'], true) ? $current['api_key'] : sanitize_text_field($input['api_key']),
+        'crc_key' => in_array(($input['crc_key'] ?? ''), ['', '***'], true) ? $current['crc_key'] : sanitize_text_field($input['crc_key']),
     ];
 }
 
