@@ -42,6 +42,18 @@ msgstr "Klucz API / secretId"
 msgid "CRC key"
 msgstr "Klucz CRC"
 
+msgid "Test connection"
+msgstr "Test połączenia"
+
+msgid "Test Przelewy24 API access"
+msgstr "Przetestuj dostęp API Przelewy24"
+
+msgid "Connection successful."
+msgstr "Połączenie poprawne."
+
+msgid "Connection failed. Check mode, POS ID and API key / secretId."
+msgstr "Połączenie nieudane. Sprawdź tryb, POS ID oraz klucz API / secretId."
+
 msgid "required"
 msgstr "wymagane"
 

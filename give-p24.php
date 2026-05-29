@@ -43,6 +43,8 @@ add_filter('give_admin_field_get_value', 'give_p24_get_give_setting_value', 10, 
 add_filter('give_admin_settings_sanitize_option_' . GIVE_P24_OPTION, 'give_p24_sanitize_give_setting_value', 10, 3);
 add_filter('give_save_options_gateways_przelewy24', '__return_false');
 add_action('give_update_options_gateways_przelewy24', 'give_p24_save_give_settings');
+add_action('admin_init', 'give_p24_handle_test_access');
+add_action('give_admin_field_give_p24_test_access', 'give_p24_render_test_access_field');
 
 function give_p24_default_options(): array
 {
@@ -134,6 +136,11 @@ function give_p24_give_settings(): array
             'attributes' => [
                 'required' => 'required',
             ],
+        ],
+        [
+            'id' => 'give_p24_test_access',
+            'name' => __('Test connection', 'give-p24'),
+            'type' => 'give_p24_test_access',
         ],
         [
             'id' => 'give_p24_settings',
@@ -240,15 +247,20 @@ function give_p24_sign(array $params): string
 function give_p24_request(string $method, string $path, array $body)
 {
     $options = give_p24_options();
-    $response = wp_remote_request(give_p24_base_url() . $path, [
+    $args = [
         'method' => $method,
         'headers' => [
             'Authorization' => 'Basic ' . base64_encode($options['pos_id'] . ':' . $options['api_key']),
             'Content-Type' => 'application/json',
         ],
-        'body' => wp_json_encode($body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
         'timeout' => 20,
-    ]);
+    ];
+
+    if ($body) {
+        $args['body'] = wp_json_encode($body, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    }
+
+    $response = wp_remote_request(give_p24_base_url() . $path, $args);
 
     if (is_wp_error($response)) {
         return $response;
@@ -256,6 +268,61 @@ function give_p24_request(string $method, string $path, array $body)
 
     $decoded = json_decode((string) wp_remote_retrieve_body($response), true);
     return is_array($decoded) ? $decoded : [];
+}
+
+function give_p24_test_access()
+{
+    return give_p24_request('GET', '/api/v1/testAccess', []);
+}
+
+function give_p24_handle_test_access(): void
+{
+    if (
+        !is_admin()
+        || !current_user_can('manage_options')
+        || empty($_GET['give_p24_test_access'])
+        || empty($_GET['_wpnonce'])
+        || !wp_verify_nonce(sanitize_text_field(wp_unslash($_GET['_wpnonce'])), 'give_p24_test_access')
+    ) {
+        return;
+    }
+
+    $result = give_p24_test_access();
+    $status = (!is_wp_error($result) && !empty($result['data'])) ? 'success' : 'failed';
+
+    give_p24_log('TestAccess result.', [
+        'status' => $status,
+        'response' => is_wp_error($result) ? $result->get_error_message() : $result,
+    ]);
+
+    $redirect_url = remove_query_arg(['give_p24_test_access', '_wpnonce']);
+    $redirect_url = add_query_arg('give_p24_test_access_result', $status, $redirect_url);
+
+    wp_safe_redirect($redirect_url);
+    exit;
+}
+
+function give_p24_render_test_access_field(array $field, array $settings): void
+{
+    $result = isset($_GET['give_p24_test_access_result']) ? sanitize_key(wp_unslash($_GET['give_p24_test_access_result'])) : '';
+    $url = wp_nonce_url(add_query_arg('give_p24_test_access', '1'), 'give_p24_test_access');
+    ?>
+    <tr valign="top">
+        <th scope="row" class="titledesc">
+            <?php echo wp_kses_post($field['name']); ?>
+        </th>
+        <td class="give-forminp give-forminp-<?php echo esc_attr($field['type']); ?>">
+            <a class="button-secondary" href="<?php echo esc_url($url); ?>">
+                <?php esc_html_e('Test Przelewy24 API access', 'give-p24'); ?>
+            </a>
+            <?php if ($result === 'success') : ?>
+                <p class="give-field-description" style="color:#2271b1;"><?php esc_html_e('Connection successful.', 'give-p24'); ?></p>
+            <?php elseif ($result === 'failed') : ?>
+                <p class="give-field-description" style="color:#b32d2e;"><?php esc_html_e('Connection failed. Check mode, POS ID and API key / secretId.', 'give-p24'); ?></p>
+            <?php endif; ?>
+        </td>
+    </tr>
+    <?php
 }
 
 function give_p24_log(string $message, array $context = []): void
