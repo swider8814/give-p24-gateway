@@ -2,10 +2,10 @@
 /**
  * Plugin Name: Give Przelewy24 Gateway
  * Description: Przelewy24 payment gateway for GiveWP/Give donations.
- * Version: 0.1.0
+ * Version: 0.1.1
  * Requires at least: 6.0
  * Requires PHP: 7.2
- * Text Domain: give-p24
+ * Text Domain: give-p24-gateway
  */
 
 if (!defined('ABSPATH')) {
@@ -22,11 +22,11 @@ use Give\Framework\PaymentGateways\PaymentGateway;
 const GIVE_P24_OPTION = 'give_p24_options';
 
 add_action('plugins_loaded', static function () {
-    load_plugin_textdomain('give-p24', false, dirname(plugin_basename(__FILE__)) . '/languages');
+    load_plugin_textdomain('give-p24-gateway', false, dirname(plugin_basename(__FILE__)) . '/languages');
 });
 
 add_filter('give_get_sections_gateways', static function (array $sections): array {
-    $sections['przelewy24'] = __('Przelewy24', 'give-p24');
+    $sections['przelewy24'] = __('Przelewy24', 'give-p24-gateway');
 
     return $sections;
 });
@@ -84,22 +84,22 @@ function give_p24_give_settings(): array
         [
             'id' => 'give_p24_settings',
             'type' => 'title',
-            'title' => __('Przelewy24 Settings', 'give-p24'),
-            'desc' => __('Configure Przelewy24 credentials for sandbox or production payments.', 'give-p24'),
+            'title' => __('Przelewy24 Settings', 'give-p24-gateway'),
+            'desc' => __('Configure Przelewy24 credentials for sandbox or production payments.', 'give-p24-gateway'),
         ],
         [
             'id' => GIVE_P24_OPTION . '[mode]',
-            'name' => __('Mode', 'give-p24'),
+            'name' => __('Mode', 'give-p24-gateway'),
             'type' => 'select',
             'default' => $options['mode'],
             'options' => [
-                'sandbox' => __('Sandbox', 'give-p24'),
-                'production' => __('Production', 'give-p24'),
+                'sandbox' => __('Sandbox', 'give-p24-gateway'),
+                'production' => __('Production', 'give-p24-gateway'),
             ],
         ],
         [
             'id' => GIVE_P24_OPTION . '[merchant_id]',
-            'name' => give_p24_required_label(__('Merchant ID', 'give-p24')),
+            'name' => give_p24_required_label(__('Merchant ID', 'give-p24-gateway')),
             'type' => 'text',
             'default' => $options['merchant_id'],
             'attributes' => [
@@ -109,7 +109,7 @@ function give_p24_give_settings(): array
         ],
         [
             'id' => GIVE_P24_OPTION . '[pos_id]',
-            'name' => give_p24_required_label(__('POS ID', 'give-p24')),
+            'name' => give_p24_required_label(__('POS ID', 'give-p24-gateway')),
             'type' => 'text',
             'default' => $options['pos_id'],
             'attributes' => [
@@ -119,27 +119,27 @@ function give_p24_give_settings(): array
         ],
         [
             'id' => GIVE_P24_OPTION . '[api_key]',
-            'name' => give_p24_required_label(__('API key / secretId', 'give-p24')),
+            'name' => give_p24_required_label(__('API key / secretId', 'give-p24-gateway')),
             'type' => 'password',
             'default' => '',
-            'desc' => $options['api_key'] ? __('Saved. Leave as *** to keep the current key.', 'give-p24') : '',
+            'desc' => $options['api_key'] ? __('Saved. Leave as *** to keep the current key.', 'give-p24-gateway') : '',
             'attributes' => [
                 'required' => 'required',
             ],
         ],
         [
             'id' => GIVE_P24_OPTION . '[crc_key]',
-            'name' => give_p24_required_label(__('CRC key', 'give-p24')),
+            'name' => give_p24_required_label(__('CRC key', 'give-p24-gateway')),
             'type' => 'password',
             'default' => '',
-            'desc' => $options['crc_key'] ? __('Saved. Leave as *** to keep the current key.', 'give-p24') : '',
+            'desc' => $options['crc_key'] ? __('Saved. Leave as *** to keep the current key.', 'give-p24-gateway') : '',
             'attributes' => [
                 'required' => 'required',
             ],
         ],
         [
             'id' => 'give_p24_test_access',
-            'name' => __('Test connection', 'give-p24'),
+            'name' => __('Test connection', 'give-p24-gateway'),
             'type' => 'give_p24_test_access',
         ],
         [
@@ -154,7 +154,7 @@ function give_p24_required_label(string $label): string
     return sprintf(
         '%s <span class="give-required-indicator" aria-hidden="true">*</span><span class="screen-reader-text">%s</span>',
         esc_html($label),
-        esc_html__('required', 'give-p24')
+        esc_html__('required', 'give-p24-gateway')
     );
 }
 
@@ -205,8 +205,8 @@ function give_p24_save_give_settings(): void
     foreach (['merchant_id', 'pos_id', 'api_key', 'crc_key'] as $key) {
         if ($options[$key] === '') {
             Give_Admin_Settings::add_error(
-                'give-p24-required-fields',
-                __('Przelewy24 settings were not saved. All Przelewy24 fields are required.', 'give-p24')
+                'give-p24-gateway-required-fields',
+                __('Przelewy24 settings were not saved. All Przelewy24 fields are required.', 'give-p24-gateway')
             );
 
             return;
@@ -225,7 +225,7 @@ add_action('givewp_register_payment_gateway', static function ($registrar) {
 });
 
 add_action('rest_api_init', static function () {
-    register_rest_route('give-p24/v1', '/status', [
+    register_rest_route('give-p24-gateway/v1', '/status', [
         'methods' => 'POST',
         'callback' => 'give_p24_handle_status',
         'permission_callback' => '__return_true',
@@ -315,12 +315,12 @@ function give_p24_render_test_access_field(array $field, $settings = null): void
         </th>
         <td class="give-forminp give-forminp-<?php echo esc_attr($field['type']); ?>">
             <a class="button-secondary" href="<?php echo esc_url($url); ?>">
-                <?php esc_html_e('Test Przelewy24 API access', 'give-p24'); ?>
+                <?php esc_html_e('Test Przelewy24 API access', 'give-p24-gateway'); ?>
             </a>
             <?php if ($result === 'success') : ?>
-                <p class="give-field-description" style="color:#2271b1;"><?php esc_html_e('Connection successful.', 'give-p24'); ?></p>
+                <p class="give-field-description" style="color:#2271b1;"><?php esc_html_e('Connection successful.', 'give-p24-gateway'); ?></p>
             <?php elseif ($result === 'failed') : ?>
-                <p class="give-field-description" style="color:#b32d2e;"><?php esc_html_e('Connection failed. Check mode, POS ID and API key / secretId.', 'give-p24'); ?></p>
+                <p class="give-field-description" style="color:#b32d2e;"><?php esc_html_e('Connection failed. Check mode, POS ID and API key / secretId.', 'give-p24-gateway'); ?></p>
             <?php endif; ?>
         </td>
     </tr>
@@ -478,21 +478,21 @@ function give_p24_register_gateway_class(): void
 
         public function getName(): string
         {
-            return __('Przelewy24', 'give-p24');
+            return __('Przelewy24', 'give-p24-gateway');
         }
 
         public function getPaymentMethodLabel(): string
         {
-            return __('Przelewy24', 'give-p24');
+            return __('Przelewy24', 'give-p24-gateway');
         }
 
         public function enqueueScript(int $formId)
         {
             wp_enqueue_script(
                 'give-p24-gateway',
-                plugin_dir_url(__FILE__) . 'assets/js/give-p24.js',
+                plugin_dir_url(__FILE__) . 'assets/js/give-p24-gateway.js',
                 ['react', 'wp-element'],
-                '0.1.0',
+                '0.1.1',
                 true
             );
         }
@@ -500,13 +500,13 @@ function give_p24_register_gateway_class(): void
         public function formSettings(int $formId): array
         {
             return [
-                'message' => __('You will be redirected to Przelewy24 to complete the donation.', 'give-p24'),
+                'message' => __('You will be redirected to Przelewy24 to complete the donation.', 'give-p24-gateway'),
             ];
         }
 
         public function getLegacyFormFieldMarkup(int $formId, array $args): string
         {
-            return '<div class="give-p24-help-text"><p>' . esc_html__('You will be redirected to Przelewy24 to complete the donation.', 'give-p24') . '</p></div>';
+            return '<div class="give-p24-gateway-help-text"><p>' . esc_html__('You will be redirected to Przelewy24 to complete the donation.', 'give-p24-gateway') . '</p></div>';
         }
 
         public function createPayment(Donation $donation, $gatewayData)
@@ -514,7 +514,7 @@ function give_p24_register_gateway_class(): void
             $options = give_p24_options();
             foreach (['merchant_id', 'pos_id', 'api_key', 'crc_key'] as $key) {
                 if ($options[$key] === '') {
-                    throw new Exception(__('Przelewy24 gateway is not configured.', 'give-p24'));
+                    throw new Exception(__('Przelewy24 gateway is not configured.', 'give-p24-gateway'));
                 }
             }
 
@@ -528,13 +528,13 @@ function give_p24_register_gateway_class(): void
                 'sessionId' => $session_id,
                 'amount' => $amount,
                 'currency' => $currency,
-                'description' => sprintf(__('Donation #%s', 'give-p24'), $donation->id),
+                'description' => sprintf(__('Donation #%s', 'give-p24-gateway'), $donation->id),
                 'email' => $donation->email,
                 'client' => trim($donation->firstName . ' ' . $donation->lastName),
                 'country' => 'PL',
                 'language' => 'pl',
                 'urlReturn' => give_get_success_page_uri(),
-                'urlStatus' => rest_url('give-p24/v1/status'),
+                'urlStatus' => rest_url('give-p24-gateway/v1/status'),
             ];
             $body['sign'] = give_p24_sign([
                 'sessionId' => $session_id,
@@ -552,7 +552,7 @@ function give_p24_register_gateway_class(): void
                     'response' => is_wp_error($registered) ? $registered->get_error_message() : $registered,
                 ]);
 
-                throw new Exception(__('Przelewy24 transaction registration failed.', 'give-p24'));
+                throw new Exception(__('Przelewy24 transaction registration failed.', 'give-p24-gateway'));
             }
 
             give_p24_log('Transaction registered.', [

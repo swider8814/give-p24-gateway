@@ -4,7 +4,7 @@
     function Fields() {
         return window.wp.element.createElement(
             'div',
-            {className: 'give-p24-help-text'},
+            {className: 'give-p24-gateway-help-text'},
             window.wp.element.createElement('p', {style: {marginBottom: 0}}, settings.message)
         );
     }

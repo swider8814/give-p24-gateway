@@ -18,7 +18,7 @@ MVP implementation for one-time offsite donations:
 Copy this directory to:
 
 ```text
-wp-content/plugins/give-p24
+wp-content/plugins/give-p24-gateway
 ```
 
 Then activate **Give Przelewy24 Gateway** in WordPress.
@@ -46,7 +46,7 @@ Use **Test Przelewy24 API access** after saving credentials to verify that the s
 The plugin registers this REST endpoint:
 
 ```text
-/wp-json/give-p24/v1/status
+/wp-json/give-p24-gateway/v1/status
 ```
 
 This URL is sent to Przelewy24 as `urlStatus`. Payment completion is based on the Przelewy24 notification plus transaction verification, not on the return URL alone.
