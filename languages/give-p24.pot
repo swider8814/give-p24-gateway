@@ -1,0 +1,60 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Give Przelewy24 Gateway 0.1.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-05-29 00:00+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Codex\n"
+
+msgid "Give Przelewy24"
+msgstr ""
+
+msgid "Mode"
+msgstr ""
+
+msgid "Przelewy24 Settings"
+msgstr ""
+
+msgid "Configure Przelewy24 credentials for sandbox or production payments."
+msgstr ""
+
+msgid "Sandbox"
+msgstr ""
+
+msgid "Production"
+msgstr ""
+
+msgid "Merchant ID"
+msgstr ""
+
+msgid "POS ID"
+msgstr ""
+
+msgid "API key / secretId"
+msgstr ""
+
+msgid "CRC key"
+msgstr ""
+
+msgid "Saved - leave blank to keep"
+msgstr ""
+
+msgid "Przelewy24"
+msgstr ""
+
+msgid "You will be redirected to Przelewy24 to complete the donation."
+msgstr ""
+
+msgid "Przelewy24 gateway is not configured."
+msgstr ""
+
+msgid "Donation #%s"
+msgstr ""
+
+msgid "Przelewy24 transaction registration failed."
+msgstr ""
