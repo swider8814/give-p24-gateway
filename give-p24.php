@@ -214,6 +214,11 @@ function give_p24_save_give_settings(): void
     }
 
     update_option(GIVE_P24_OPTION, $options, false);
+
+    if (isset($_GET['give_p24_test_access_result'])) {
+        wp_safe_redirect(remove_query_arg('give_p24_test_access_result'));
+        exit;
+    }
 }
 
 add_action('givewp_register_payment_gateway', static function ($registrar) {
