@@ -33,11 +33,13 @@ Donations > Settings > Payment Gateways > Przelewy24
 
 Set:
 
-- mode: sandbox or production
-- merchant ID
-- POS ID
-- API key / secretId
-- CRC key
+- Mode: sandbox or production
+- Merchant ID: Przelewy24 account number (`Dane konta`)
+- POS ID: POS identifier, usually the same as Merchant ID unless a separate POS is configured
+- API key / secretId: `Klucz do raportów`
+- CRC key: `Klucz do CRC`
+
+Use **Test Przelewy24 API access** after saving credentials to verify that the selected mode, POS ID and API key are valid.
 
 ## Webhook
 
@@ -48,6 +50,18 @@ The plugin registers this REST endpoint:
 ```
 
 This URL is sent to Przelewy24 as `urlStatus`. Payment completion is based on the Przelewy24 notification plus transaction verification, not on the return URL alone.
+
+For a full sandbox payment test, the WordPress site must be reachable by Przelewy24 over public HTTPS. A local `localhost` site can register transactions, but it cannot receive the Przelewy24 status notification.
+
+## Sandbox Test Checklist
+
+- Install Give and this gateway on a public HTTPS WordPress test site.
+- Configure sandbox credentials in `Donations > Settings > Payment Gateways > Przelewy24`.
+- Enable Przelewy24 as a payment gateway in Give.
+- Create or open a Visual Donation Form Builder form with PLN amounts.
+- Make a sandbox donation and complete payment on Przelewy24.
+- Confirm the donation changes from `Pending` to `Complete`.
+- Check `Donations > Tools > Logs` for Przelewy24 entries if the status does not update.
 
 ## Local Test Environment
 
@@ -68,4 +82,3 @@ Default local test credentials:
 ```text
 admin / admin
 ```
-
