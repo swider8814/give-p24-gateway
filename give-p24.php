@@ -214,11 +214,6 @@ function give_p24_save_give_settings(): void
     }
 
     update_option(GIVE_P24_OPTION, $options, false);
-
-    if (isset($_GET['give_p24_test_access_result'])) {
-        wp_safe_redirect(give_p24_settings_url());
-        exit;
-    }
 }
 
 add_action('givewp_register_payment_gateway', static function ($registrar) {
@@ -309,7 +304,9 @@ function give_p24_handle_test_access(): void
 
 function give_p24_render_test_access_field(array $field, $settings = null): void
 {
-    $result = isset($_GET['give_p24_test_access_result']) ? sanitize_key(wp_unslash($_GET['give_p24_test_access_result'])) : '';
+    $result = ($_SERVER['REQUEST_METHOD'] ?? '') === 'GET' && isset($_GET['give_p24_test_access_result'])
+        ? sanitize_key(wp_unslash($_GET['give_p24_test_access_result']))
+        : '';
     $url = wp_nonce_url(add_query_arg('give_p24_test_access', '1', give_p24_settings_url()), 'give_p24_test_access');
     ?>
     <tr valign="top">
