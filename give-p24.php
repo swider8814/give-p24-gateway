@@ -41,6 +41,8 @@ add_filter('give_get_settings_gateways', static function (array $settings): arra
 
 add_filter('give_admin_field_get_value', 'give_p24_get_give_setting_value', 10, 4);
 add_filter('give_admin_settings_sanitize_option_' . GIVE_P24_OPTION, 'give_p24_sanitize_give_setting_value', 10, 3);
+add_filter('give_save_options_gateways_przelewy24', '__return_false');
+add_action('give_update_options_gateways_przelewy24', 'give_p24_save_give_settings');
 
 function give_p24_default_options(): array
 {
@@ -169,6 +171,12 @@ function give_p24_sanitize_give_setting_value($value, array $option, $raw_value)
     }
 
     return null;
+}
+
+function give_p24_save_give_settings(): void
+{
+    $raw = isset($_POST[GIVE_P24_OPTION]) ? wp_unslash($_POST[GIVE_P24_OPTION]) : [];
+    update_option(GIVE_P24_OPTION, give_p24_sanitize_options((array) $raw), false);
 }
 
 add_action('givewp_register_payment_gateway', static function ($registrar) {
