@@ -216,7 +216,7 @@ function give_p24_save_give_settings(): void
     update_option(GIVE_P24_OPTION, $options, false);
 
     if (isset($_GET['give_p24_test_access_result'])) {
-        wp_safe_redirect(remove_query_arg('give_p24_test_access_result'));
+        wp_safe_redirect(give_p24_settings_url());
         exit;
     }
 }
@@ -300,7 +300,7 @@ function give_p24_handle_test_access(): void
         'response' => is_wp_error($result) ? $result->get_error_message() : $result,
     ]);
 
-    $redirect_url = remove_query_arg(['give_p24_test_access', '_wpnonce']);
+    $redirect_url = give_p24_settings_url();
     $redirect_url = add_query_arg('give_p24_test_access_result', $status, $redirect_url);
 
     wp_safe_redirect($redirect_url);
@@ -310,7 +310,7 @@ function give_p24_handle_test_access(): void
 function give_p24_render_test_access_field(array $field, $settings = null): void
 {
     $result = isset($_GET['give_p24_test_access_result']) ? sanitize_key(wp_unslash($_GET['give_p24_test_access_result'])) : '';
-    $url = wp_nonce_url(add_query_arg('give_p24_test_access', '1'), 'give_p24_test_access');
+    $url = wp_nonce_url(add_query_arg('give_p24_test_access', '1', give_p24_settings_url()), 'give_p24_test_access');
     ?>
     <tr valign="top">
         <th scope="row" class="titledesc">
@@ -328,6 +328,19 @@ function give_p24_render_test_access_field(array $field, $settings = null): void
         </td>
     </tr>
     <?php
+}
+
+function give_p24_settings_url(): string
+{
+    return add_query_arg(
+        [
+            'post_type' => 'give_forms',
+            'page' => 'give-settings',
+            'tab' => 'gateways',
+            'section' => 'przelewy24',
+        ],
+        admin_url('edit.php')
+    );
 }
 
 function give_p24_log(string $message, array $context = []): void
