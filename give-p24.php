@@ -258,6 +258,18 @@ function give_p24_request(string $method, string $path, array $body)
     return is_array($decoded) ? $decoded : [];
 }
 
+function give_p24_log(string $message, array $context = []): void
+{
+    $line = $message . ($context ? ' ' . wp_json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : '');
+
+    if (function_exists('give_record_log')) {
+        give_record_log('Przelewy24', $line, 0, 'info');
+        return;
+    }
+
+    error_log('[Give Przelewy24] ' . $line);
+}
+
 function give_p24_amount_to_minor($amount): int
 {
     $decimal = is_object($amount) && method_exists($amount, 'formatToDecimal')
@@ -277,6 +289,13 @@ function give_p24_handle_status(WP_REST_Request $request): WP_REST_Response
     $payload = (array) $request->get_json_params();
     $options = give_p24_options();
 
+    give_p24_log('Webhook received.', [
+        'sessionId' => (string) ($payload['sessionId'] ?? ''),
+        'orderId' => (int) ($payload['orderId'] ?? 0),
+        'amount' => (int) ($payload['amount'] ?? 0),
+        'currency' => (string) ($payload['currency'] ?? ''),
+    ]);
+
     $expected_sign = give_p24_sign([
         'merchantId' => (int) ($payload['merchantId'] ?? 0),
         'posId' => (int) ($payload['posId'] ?? 0),
@@ -291,6 +310,11 @@ function give_p24_handle_status(WP_REST_Request $request): WP_REST_Response
     ]);
 
     if (empty($payload['sign']) || !hash_equals($expected_sign, (string) $payload['sign'])) {
+        give_p24_log('Webhook rejected: invalid sign.', [
+            'sessionId' => (string) ($payload['sessionId'] ?? ''),
+            'orderId' => (int) ($payload['orderId'] ?? 0),
+        ]);
+
         return new WP_REST_Response(['error' => 'Invalid sign'], 400);
     }
 
@@ -317,8 +341,20 @@ function give_p24_handle_status(WP_REST_Request $request): WP_REST_Response
 
     $verified = give_p24_request('PUT', '/api/v1/transaction/verify', $verify_body);
     if (is_wp_error($verified) || ((int) ($verified['responseCode'] ?? -1) !== 0)) {
+        give_p24_log('Transaction verification failed.', [
+            'sessionId' => $verify_body['sessionId'],
+            'orderId' => $verify_body['orderId'],
+            'response' => is_wp_error($verified) ? $verified->get_error_message() : $verified,
+        ]);
+
         return new WP_REST_Response(['error' => 'Verification failed'], 400);
     }
+
+    give_p24_log('Transaction verified.', [
+        'donationId' => $donation_id,
+        'sessionId' => $verify_body['sessionId'],
+        'orderId' => $verify_body['orderId'],
+    ]);
 
     $donation = Donation::find($donation_id);
     if (!$donation) {
@@ -428,8 +464,21 @@ function give_p24_register_gateway_class(): void
 
             $registered = give_p24_request('POST', '/api/v1/transaction/register', $body);
             if (is_wp_error($registered) || empty($registered['data']['token'])) {
+                give_p24_log('Transaction registration failed.', [
+                    'donationId' => $donation->id,
+                    'sessionId' => $session_id,
+                    'response' => is_wp_error($registered) ? $registered->get_error_message() : $registered,
+                ]);
+
                 throw new Exception(__('Przelewy24 transaction registration failed.', 'give-p24'));
             }
+
+            give_p24_log('Transaction registered.', [
+                'donationId' => $donation->id,
+                'sessionId' => $session_id,
+                'amount' => $amount,
+                'currency' => $currency,
+            ]);
 
             update_post_meta($donation->id, '_give_p24_session_id', $session_id);
 
