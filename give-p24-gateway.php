@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Give Przelewy24 Gateway
  * Description: Przelewy24 payment gateway for GiveWP/Give donations.
- * Version: 0.1.3
+ * Version: 0.1.4
  * Requires at least: 6.0
  * Requires PHP: 7.2
  * Author: Daniel Świderski
@@ -387,6 +387,17 @@ function give_p24_gateway_parse_donation_id(string $session_id): int
     return preg_match('/^give-([0-9]+)-/', $session_id, $matches) ? (int) $matches[1] : 0;
 }
 
+function give_p24_gateway_transaction_description(Donation $donation): string
+{
+    $form_title = trim(wp_strip_all_tags((string) ($donation->formTitle ?? '')));
+
+    if ($form_title !== '') {
+        return mb_substr(sprintf(__('Donation - %s', 'give-p24-gateway'), $form_title), 0, 128);
+    }
+
+    return mb_substr(sprintf(__('Donation #%s', 'give-p24-gateway'), $donation->id), 0, 128);
+}
+
 function give_p24_gateway_handle_status(WP_REST_Request $request): WP_REST_Response
 {
     $payload = (array) $request->get_json_params();
@@ -549,7 +560,7 @@ function give_p24_gateway_register_gateway_class(): void
                 'sessionId' => $session_id,
                 'amount' => $amount,
                 'currency' => $currency,
-                'description' => sprintf(__('Donation #%s', 'give-p24-gateway'), $donation->id),
+                'description' => give_p24_gateway_transaction_description($donation),
                 'email' => $donation->email,
                 'client' => trim($donation->firstName . ' ' . $donation->lastName),
                 'country' => 'PL',
