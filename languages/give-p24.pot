@@ -44,6 +44,12 @@ msgstr ""
 msgid "Saved - leave blank to keep"
 msgstr ""
 
+msgid "Saved. Leave as *** to keep the current key."
+msgstr ""
+
+msgid "Przelewy24 settings were not saved. All Przelewy24 fields are required."
+msgstr ""
+
 msgid "Przelewy24"
 msgstr ""
 

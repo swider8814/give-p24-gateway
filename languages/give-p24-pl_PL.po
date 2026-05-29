@@ -45,6 +45,12 @@ msgstr "Klucz CRC"
 msgid "Saved - leave blank to keep"
 msgstr "Zapisano – pozostaw puste, aby zachować"
 
+msgid "Saved. Leave as *** to keep the current key."
+msgstr "Zapisano. Pozostaw *** bez zmian, aby zachować obecny klucz."
+
+msgid "Przelewy24 settings were not saved. All Przelewy24 fields are required."
+msgstr "Ustawienia Przelewy24 nie zostały zapisane. Wszystkie pola Przelewy24 są wymagane."
+
 msgid "Przelewy24"
 msgstr "Przelewy24"
 

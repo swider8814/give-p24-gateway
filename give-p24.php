@@ -102,6 +102,7 @@ function give_p24_give_settings(): array
             'default' => $options['merchant_id'],
             'attributes' => [
                 'inputmode' => 'numeric',
+                'required' => 'required',
             ],
         ],
         [
@@ -111,6 +112,7 @@ function give_p24_give_settings(): array
             'default' => $options['pos_id'],
             'attributes' => [
                 'inputmode' => 'numeric',
+                'required' => 'required',
             ],
         ],
         [
@@ -118,14 +120,20 @@ function give_p24_give_settings(): array
             'name' => __('API key / secretId', 'give-p24'),
             'type' => 'password',
             'default' => '',
-            'desc' => $options['api_key'] ? __('Saved - leave blank to keep', 'give-p24') : '',
+            'desc' => $options['api_key'] ? __('Saved. Leave as *** to keep the current key.', 'give-p24') : '',
+            'attributes' => [
+                'required' => 'required',
+            ],
         ],
         [
             'id' => GIVE_P24_OPTION . '[crc_key]',
             'name' => __('CRC key', 'give-p24'),
             'type' => 'password',
             'default' => '',
-            'desc' => $options['crc_key'] ? __('Saved - leave blank to keep', 'give-p24') : '',
+            'desc' => $options['crc_key'] ? __('Saved. Leave as *** to keep the current key.', 'give-p24') : '',
+            'attributes' => [
+                'required' => 'required',
+            ],
         ],
         [
             'id' => 'give_p24_settings',
@@ -176,7 +184,20 @@ function give_p24_sanitize_give_setting_value($value, array $option, $raw_value)
 function give_p24_save_give_settings(): void
 {
     $raw = isset($_POST[GIVE_P24_OPTION]) ? wp_unslash($_POST[GIVE_P24_OPTION]) : [];
-    update_option(GIVE_P24_OPTION, give_p24_sanitize_options((array) $raw), false);
+    $options = give_p24_sanitize_options((array) $raw);
+
+    foreach (['merchant_id', 'pos_id', 'api_key', 'crc_key'] as $key) {
+        if ($options[$key] === '') {
+            Give_Admin_Settings::add_error(
+                'give-p24-required-fields',
+                __('Przelewy24 settings were not saved. All Przelewy24 fields are required.', 'give-p24')
+            );
+
+            return;
+        }
+    }
+
+    update_option(GIVE_P24_OPTION, $options, false);
 }
 
 add_action('givewp_register_payment_gateway', static function ($registrar) {
