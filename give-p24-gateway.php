@@ -2,9 +2,10 @@
 /**
  * Plugin Name: Give Przelewy24 Gateway
  * Description: Przelewy24 payment gateway for GiveWP/Give donations.
- * Version: 0.1.8
+ * Version: 0.1.9
  * Requires at least: 6.0
  * Requires PHP: 7.2
+ * Requires Plugins: give
  * Author: Daniel Świderski
  * Author URI: https://8814.pl
  * Text Domain: give-p24-gateway
@@ -23,6 +24,7 @@ use Give\Framework\PaymentGateways\PaymentGateway;
 
 const GIVE_P24_GATEWAY_OPTION = 'give_p24_gateway_options';
 const GIVE_P24_GATEWAY_LEGACY_OPTION = 'give_p24_options';
+const GIVE_P24_GATEWAY_VERSION = '0.1.9';
 
 register_activation_hook(__FILE__, 'give_p24_gateway_activate');
 
@@ -72,6 +74,14 @@ add_action('plugins_loaded', static function () {
     add_action('give_update_options_gateways_przelewy24', 'give_p24_gateway_save_give_settings');
     add_action('admin_init', 'give_p24_gateway_handle_test_access');
     add_action('give_admin_field_give_p24_gateway_test_access', 'give_p24_gateway_render_test_access_field', 10, 2);
+
+    add_action('rest_api_init', static function () {
+        register_rest_route('give-p24-gateway/v1', '/status', [
+            'methods' => 'POST',
+            'callback' => 'give_p24_gateway_handle_status',
+            'permission_callback' => '__return_true',
+        ]);
+    });
 });
 
 function give_p24_gateway_default_options(): array
@@ -264,14 +274,6 @@ add_action('givewp_register_payment_gateway', static function ($registrar) {
     }
 });
 
-add_action('rest_api_init', static function () {
-    register_rest_route('give-p24-gateway/v1', '/status', [
-        'methods' => 'POST',
-        'callback' => 'give_p24_gateway_handle_status',
-        'permission_callback' => '__return_true',
-    ]);
-});
-
 function give_p24_gateway_base_url(): string
 {
     return give_p24_gateway_options()['mode'] === 'production'
@@ -306,13 +308,38 @@ function give_p24_gateway_request(string $method, string $path, array $body)
         return $response;
     }
 
-    $decoded = json_decode((string) wp_remote_retrieve_body($response), true);
-    return is_array($decoded) ? $decoded : [];
+    $status_code = wp_remote_retrieve_response_code($response);
+    $body = (string) wp_remote_retrieve_body($response);
+    $decoded = json_decode($body, true);
+
+    if ($status_code < 200 || $status_code >= 300) {
+        return new WP_Error('give_p24_gateway_http_error', 'Przelewy24 API returned an HTTP error.', [
+            'statusCode' => $status_code,
+            'response' => is_array($decoded) ? $decoded : $body,
+        ]);
+    }
+
+    if (!is_array($decoded)) {
+        return new WP_Error('give_p24_gateway_invalid_json', 'Przelewy24 API returned an invalid JSON response.', [
+            'statusCode' => $status_code,
+            'response' => $body,
+        ]);
+    }
+
+    return $decoded;
 }
 
 function give_p24_gateway_test_access()
 {
     return give_p24_gateway_request('GET', '/api/v1/testAccess', []);
+}
+
+function give_p24_gateway_error_context(WP_Error $error): array
+{
+    return [
+        'message' => $error->get_error_message(),
+        'data' => $error->get_error_data(),
+    ];
 }
 
 function give_p24_gateway_handle_test_access(): void
@@ -332,7 +359,7 @@ function give_p24_gateway_handle_test_access(): void
 
     give_p24_gateway_log('TestAccess result.', [
         'status' => $status,
-        'response' => is_wp_error($result) ? $result->get_error_message() : $result,
+        'response' => is_wp_error($result) ? give_p24_gateway_error_context($result) : $result,
     ], $status === 'success' ? 'success' : 'warning');
 
     $redirect_url = give_p24_gateway_settings_url();
@@ -439,6 +466,23 @@ function give_p24_gateway_donation_status_value(Donation $donation): string
         : (string) $donation->status;
 }
 
+function give_p24_gateway_acquire_webhook_lock(int $donation_id): bool
+{
+    $lock_key = '_give_p24_gateway_webhook_lock';
+
+    if (add_post_meta($donation_id, $lock_key, time(), true)) {
+        return true;
+    }
+
+    $locked_at = (int) get_post_meta($donation_id, $lock_key, true);
+    if ($locked_at && $locked_at < time() - 10 * MINUTE_IN_SECONDS) {
+        delete_post_meta($donation_id, $lock_key);
+        return add_post_meta($donation_id, $lock_key, time(), true);
+    }
+
+    return false;
+}
+
 function give_p24_gateway_handle_status(WP_REST_Request $request): WP_REST_Response
 {
     $payload = (array) $request->get_json_params();
@@ -471,6 +515,17 @@ function give_p24_gateway_handle_status(WP_REST_Request $request): WP_REST_Respo
         ], 'error');
 
         return new WP_REST_Response(['error' => 'Invalid sign'], 400);
+    }
+
+    if ((int) ($payload['merchantId'] ?? 0) !== (int) $options['merchant_id'] || (int) ($payload['posId'] ?? 0) !== (int) $options['pos_id']) {
+        give_p24_gateway_log('Webhook rejected: merchant or POS mismatch.', [
+            'expectedMerchantId' => (int) $options['merchant_id'],
+            'receivedMerchantId' => (int) ($payload['merchantId'] ?? 0),
+            'expectedPosId' => (int) $options['pos_id'],
+            'receivedPosId' => (int) ($payload['posId'] ?? 0),
+        ], 'error');
+
+        return new WP_REST_Response(['error' => 'Merchant or POS mismatch'], 400);
     }
 
     $donation_id = give_p24_gateway_parse_donation_id((string) ($payload['sessionId'] ?? ''));
@@ -516,6 +571,16 @@ function give_p24_gateway_handle_status(WP_REST_Request $request): WP_REST_Respo
         return new WP_REST_Response(['status' => 'ok'], 200);
     }
 
+    if (!give_p24_gateway_acquire_webhook_lock($donation_id)) {
+        give_p24_gateway_log('Webhook ignored: donation is already being processed.', [
+            'donationId' => $donation_id,
+            'sessionId' => (string) $payload['sessionId'],
+            'orderId' => (int) $payload['orderId'],
+        ], 'warning');
+
+        return new WP_REST_Response(['status' => 'ok'], 200);
+    }
+
     $verify_body = [
         'merchantId' => (int) $options['merchant_id'],
         'posId' => (int) $options['pos_id'],
@@ -537,8 +602,9 @@ function give_p24_gateway_handle_status(WP_REST_Request $request): WP_REST_Respo
         give_p24_gateway_log('Transaction verification failed.', [
             'sessionId' => $verify_body['sessionId'],
             'orderId' => $verify_body['orderId'],
-            'response' => is_wp_error($verified) ? $verified->get_error_message() : $verified,
+            'response' => is_wp_error($verified) ? give_p24_gateway_error_context($verified) : $verified,
         ], 'error');
+        delete_post_meta($donation_id, '_give_p24_gateway_webhook_lock');
 
         return new WP_REST_Response(['error' => 'Verification failed'], 400);
     }
@@ -602,7 +668,7 @@ function give_p24_gateway_register_gateway_class(): void
                 'give-p24-gateway',
                 plugin_dir_url(__FILE__) . 'assets/js/give-p24-gateway.js',
                 ['react', 'wp-element'],
-                '0.1.1',
+                GIVE_P24_GATEWAY_VERSION,
                 true
             );
         }
@@ -659,7 +725,7 @@ function give_p24_gateway_register_gateway_class(): void
                 give_p24_gateway_log('Transaction registration failed.', [
                     'donationId' => $donation->id,
                     'sessionId' => $session_id,
-                    'response' => is_wp_error($registered) ? $registered->get_error_message() : $registered,
+                    'response' => is_wp_error($registered) ? give_p24_gateway_error_context($registered) : $registered,
                 ], 'error');
 
                 throw new Exception(__('Przelewy24 transaction registration failed.', 'give-p24-gateway'));

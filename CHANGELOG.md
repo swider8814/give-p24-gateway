@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.1.9 - 2026-05-30
+
+- Added explicit webhook validation for Przelewy24 merchant ID and POS ID.
+- Added a per-donation webhook processing lock with stale-lock recovery to avoid duplicate processing during concurrent callbacks.
+- Improved Przelewy24 API error handling with HTTP status and response context.
+- Added the native WordPress `Requires Plugins: give` dependency header.
+- Registered the webhook REST route only when Give is active.
+- Reused the plugin version for the Visual Donation Form Builder script.
+
 ## v0.1.8 - 2026-05-30
 
 - Added activation guard requiring the Give plugin to be active.
