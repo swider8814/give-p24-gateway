@@ -15,7 +15,21 @@ MVP implementation for one-time offsite donations:
 
 ## Installation
 
-Copy this directory to:
+Download the latest release ZIP:
+
+```text
+https://github.com/swider8814/give-p24-gateway/releases/latest/download/give-p24-gateway.zip
+```
+
+In WordPress go to:
+
+```text
+Plugins > Add New > Upload Plugin
+```
+
+Upload `give-p24-gateway.zip`, install it, then activate **Give Przelewy24 Gateway**.
+
+Alternatively, copy this directory to:
 
 ```text
 wp-content/plugins/give-p24-gateway
@@ -41,6 +55,17 @@ Set:
 
 Use **Test Przelewy24 API access** after saving credentials to verify that the selected mode, POS ID and API key are valid.
 
+## Przelewy24 Field Mapping
+
+Use these values from the Przelewy24 panel:
+
+- `Dane konta` / account number -> Merchant ID
+- POS identifier -> POS ID
+- `Klucz do raportów` -> API key / secretId
+- `Klucz do CRC` -> CRC key
+
+In many Przelewy24 accounts, POS ID is the same number as Merchant ID unless a separate POS is configured.
+
 ## Webhook
 
 The plugin registers this REST endpoint:
@@ -62,6 +87,16 @@ For a full sandbox payment test, the WordPress site must be reachable by Przelew
 - Make a sandbox donation and complete payment on Przelewy24.
 - Confirm the donation changes from `Pending` to `Complete`.
 - Check `Donations > Tools > Logs` for Przelewy24 entries if the status does not update.
+
+## Troubleshooting
+
+If a donation stays `Pending`:
+
+- Make sure the WordPress site is publicly reachable over HTTPS.
+- Confirm the webhook URL works: `/wp-json/give-p24-gateway/v1/status`.
+- Check that sandbox credentials are used only in sandbox mode, and production credentials only in production mode.
+- Use **Test Przelewy24 API access** in the gateway settings.
+- Check `Donations > Tools > Logs` for Przelewy24 entries.
 
 ## Local Test Environment
 

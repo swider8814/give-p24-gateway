@@ -1,0 +1,17 @@
+# Changelog
+
+## v0.1.6 - 2026-05-30
+
+First working test release.
+
+- Added Przelewy24 sandbox and production modes.
+- Added Give Visual Donation Form Builder support.
+- Added offsite Przelewy24 payment registration.
+- Added REST webhook endpoint for Przelewy24 status notifications.
+- Added automatic Przelewy24 transaction verification.
+- Added donation status update after successful payment.
+- Added Przelewy24 API connection test in Give settings.
+- Added Polish translation and translation template.
+- Added transaction descriptions based on Give form title.
+- Added donation note with visible Przelewy24 transaction ID.
+- Added Give logs using native log types, category `Payment`, source `Przelewy24`.
