@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Give Przelewy24 Gateway
  * Description: Przelewy24 payment gateway for GiveWP/Give donations.
- * Version: 0.1.7
+ * Version: 0.1.8
  * Requires at least: 6.0
  * Requires PHP: 7.2
  * Author: Daniel Świderski
@@ -24,30 +24,55 @@ use Give\Framework\PaymentGateways\PaymentGateway;
 const GIVE_P24_GATEWAY_OPTION = 'give_p24_gateway_options';
 const GIVE_P24_GATEWAY_LEGACY_OPTION = 'give_p24_options';
 
-add_action('plugins_loaded', static function () {
-    load_plugin_textdomain('give-p24-gateway', false, dirname(plugin_basename(__FILE__)) . '/languages');
-});
+register_activation_hook(__FILE__, 'give_p24_gateway_activate');
 
-add_filter('give_get_sections_gateways', static function (array $sections): array {
-    $sections['przelewy24'] = __('Przelewy24', 'give-p24-gateway');
+function give_p24_gateway_is_give_active(): bool
+{
+    return class_exists('Give') || function_exists('Give') || defined('GIVE_VERSION');
+}
 
-    return $sections;
-});
-
-add_filter('give_get_settings_gateways', static function (array $settings): array {
-    if (!function_exists('give_get_current_setting_section') || give_get_current_setting_section() !== 'przelewy24') {
-        return $settings;
+function give_p24_gateway_activate(): void
+{
+    if (give_p24_gateway_is_give_active()) {
+        return;
     }
 
-    return give_p24_gateway_give_settings();
-});
+    deactivate_plugins(plugin_basename(__FILE__));
+    wp_die(
+        esc_html__('Give Przelewy24 Gateway requires the Give plugin to be active.', 'give-p24-gateway'),
+        esc_html__('Plugin dependency missing', 'give-p24-gateway'),
+        ['back_link' => true]
+    );
+}
 
-add_filter('give_admin_field_get_value', 'give_p24_gateway_get_give_setting_value', 10, 4);
-add_filter('give_admin_settings_sanitize_option_' . GIVE_P24_GATEWAY_OPTION, 'give_p24_gateway_sanitize_give_setting_value', 10, 3);
-add_filter('give_save_options_gateways_przelewy24', '__return_false');
-add_action('give_update_options_gateways_przelewy24', 'give_p24_gateway_save_give_settings');
-add_action('admin_init', 'give_p24_gateway_handle_test_access');
-add_action('give_admin_field_give_p24_gateway_test_access', 'give_p24_gateway_render_test_access_field', 10, 2);
+add_action('plugins_loaded', static function () {
+    load_plugin_textdomain('give-p24-gateway', false, dirname(plugin_basename(__FILE__)) . '/languages');
+
+    if (!give_p24_gateway_is_give_active()) {
+        return;
+    }
+
+    add_filter('give_get_sections_gateways', static function (array $sections): array {
+        $sections['przelewy24'] = __('Przelewy24', 'give-p24-gateway');
+
+        return $sections;
+    });
+
+    add_filter('give_get_settings_gateways', static function (array $settings): array {
+        if (!function_exists('give_get_current_setting_section') || give_get_current_setting_section() !== 'przelewy24') {
+            return $settings;
+        }
+
+        return give_p24_gateway_give_settings();
+    });
+
+    add_filter('give_admin_field_get_value', 'give_p24_gateway_get_give_setting_value', 10, 4);
+    add_filter('give_admin_settings_sanitize_option_' . GIVE_P24_GATEWAY_OPTION, 'give_p24_gateway_sanitize_give_setting_value', 10, 3);
+    add_filter('give_save_options_gateways_przelewy24', '__return_false');
+    add_action('give_update_options_gateways_przelewy24', 'give_p24_gateway_save_give_settings');
+    add_action('admin_init', 'give_p24_gateway_handle_test_access');
+    add_action('give_admin_field_give_p24_gateway_test_access', 'give_p24_gateway_render_test_access_field', 10, 2);
+});
 
 function give_p24_gateway_default_options(): array
 {

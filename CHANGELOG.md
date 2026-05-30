@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.1.8 - 2026-05-30
+
+- Added activation guard requiring the Give plugin to be active.
+- Prevented Give integration hooks from registering when Give is inactive.
+
 ## v0.1.7 - 2026-05-30
 
 - Added webhook validation for session ID, amount and currency.
