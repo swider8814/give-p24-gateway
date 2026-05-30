@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.1.10 - 2026-05-30
+
+- Added a plugin list `Settings` action linking directly to Przelewy24 gateway settings.
+
 ## v0.1.9 - 2026-05-30
 
 - Added explicit webhook validation for Przelewy24 merchant ID and POS ID.
