@@ -131,3 +131,7 @@ Default local test credentials:
 ```text
 admin / admin
 ```
+
+## Development Reference
+
+See `DEVELOPMENT_NOTES.md` for the gateway architecture checklist used by this plugin. It can be reused as a starting point for another Give gateway, for example PayU.
