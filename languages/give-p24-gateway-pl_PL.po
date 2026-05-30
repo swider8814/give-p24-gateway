@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"Project-Id-Version: Give Przelewy24 Gateway 0.1.6\n"
+"Project-Id-Version: Give Przelewy24 Gateway 0.1.7\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-05-29 00:00+0000\n"
 "PO-Revision-Date: 2026-05-29 07:51+0200\n"

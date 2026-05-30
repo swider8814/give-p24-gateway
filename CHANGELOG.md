@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.1.7 - 2026-05-30
+
+- Added webhook validation for session ID, amount and currency.
+- Added idempotent handling for repeated successful Przelewy24 webhooks.
+- Added warning log when a duplicate webhook is ignored.
+
 ## v0.1.6 - 2026-05-30
 
 First working test release.

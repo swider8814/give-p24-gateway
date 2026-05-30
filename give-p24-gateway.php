@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Give Przelewy24 Gateway
  * Description: Przelewy24 payment gateway for GiveWP/Give donations.
- * Version: 0.1.6
+ * Version: 0.1.7
  * Requires at least: 6.0
  * Requires PHP: 7.2
  * Author: Daniel Świderski
@@ -407,6 +407,13 @@ function give_p24_gateway_payment_note(string $transaction_id): string
     return __('Przelewy24 payment verified.', 'give-p24-gateway');
 }
 
+function give_p24_gateway_donation_status_value(Donation $donation): string
+{
+    return is_object($donation->status) && method_exists($donation->status, 'getValue')
+        ? (string) $donation->status->getValue()
+        : (string) $donation->status;
+}
+
 function give_p24_gateway_handle_status(WP_REST_Request $request): WP_REST_Response
 {
     $payload = (array) $request->get_json_params();
@@ -446,6 +453,44 @@ function give_p24_gateway_handle_status(WP_REST_Request $request): WP_REST_Respo
         return new WP_REST_Response(['error' => 'Donation not found'], 404);
     }
 
+    $donation = Donation::find($donation_id);
+    if (!$donation) {
+        return new WP_REST_Response(['error' => 'Donation not found'], 404);
+    }
+
+    $expected_session_id = (string) get_post_meta($donation_id, '_give_p24_gateway_session_id', true);
+    if ($expected_session_id === '' || !hash_equals($expected_session_id, (string) $payload['sessionId'])) {
+        give_p24_gateway_log('Webhook rejected: session mismatch.', [
+            'donationId' => $donation_id,
+            'expectedSessionId' => $expected_session_id,
+            'receivedSessionId' => (string) ($payload['sessionId'] ?? ''),
+        ], 'error');
+
+        return new WP_REST_Response(['error' => 'Session mismatch'], 400);
+    }
+
+    $expected_amount = give_p24_gateway_amount_to_minor($donation->amount);
+    if ($expected_amount !== (int) ($payload['amount'] ?? 0) || (string) ($payload['currency'] ?? '') !== 'PLN') {
+        give_p24_gateway_log('Webhook rejected: amount or currency mismatch.', [
+            'donationId' => $donation_id,
+            'expectedAmount' => $expected_amount,
+            'receivedAmount' => (int) ($payload['amount'] ?? 0),
+            'receivedCurrency' => (string) ($payload['currency'] ?? ''),
+        ], 'error');
+
+        return new WP_REST_Response(['error' => 'Amount or currency mismatch'], 400);
+    }
+
+    if (give_p24_gateway_donation_status_value($donation) === DonationStatus::COMPLETE) {
+        give_p24_gateway_log('Webhook ignored: donation already complete.', [
+            'donationId' => $donation_id,
+            'sessionId' => (string) $payload['sessionId'],
+            'orderId' => (int) $payload['orderId'],
+        ], 'warning');
+
+        return new WP_REST_Response(['status' => 'ok'], 200);
+    }
+
     $verify_body = [
         'merchantId' => (int) $options['merchant_id'],
         'posId' => (int) $options['pos_id'],
@@ -478,11 +523,6 @@ function give_p24_gateway_handle_status(WP_REST_Request $request): WP_REST_Respo
         'sessionId' => $verify_body['sessionId'],
         'orderId' => $verify_body['orderId'],
     ], 'success');
-
-    $donation = Donation::find($donation_id);
-    if (!$donation) {
-        return new WP_REST_Response(['error' => 'Donation not found'], 404);
-    }
 
     $donation->status = DonationStatus::COMPLETE();
     $donation->gatewayTransactionId = (string) $payload['orderId'];
