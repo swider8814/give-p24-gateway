@@ -1,5 +1,13 @@
 # Changelog
 
+## v1.0.0-rc1 - 2026-05-30
+
+Release candidate after successful sandbox payment testing.
+
+- Marked the plugin as a release candidate for production preparation.
+- Documented sandbox test status and production domain whitelist requirement.
+- Documented final live payment verification checklist.
+
 ## v0.1.10 - 2026-05-30
 
 - Added a plugin list `Settings` action linking directly to Przelewy24 gateway settings.

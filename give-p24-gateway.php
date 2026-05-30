@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Give Przelewy24 Gateway
  * Description: Przelewy24 payment gateway for GiveWP/Give donations.
- * Version: 0.1.10
+ * Version: 1.0.0-rc1
  * Requires at least: 6.0
  * Requires PHP: 7.2
  * Requires Plugins: give
@@ -24,7 +24,7 @@ use Give\Framework\PaymentGateways\PaymentGateway;
 
 const GIVE_P24_GATEWAY_OPTION = 'give_p24_gateway_options';
 const GIVE_P24_GATEWAY_LEGACY_OPTION = 'give_p24_options';
-const GIVE_P24_GATEWAY_VERSION = '0.1.10';
+const GIVE_P24_GATEWAY_VERSION = '1.0.0-rc1';
 
 register_activation_hook(__FILE__, 'give_p24_gateway_activate');
 add_filter('plugin_action_links_' . plugin_basename(__FILE__), 'give_p24_gateway_plugin_action_links');

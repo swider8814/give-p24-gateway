@@ -4,7 +4,7 @@ Przelewy24 payment gateway for GiveWP/Give donations.
 
 ## Status
 
-MVP implementation for one-time offsite donations:
+Release candidate for one-time offsite donations:
 
 - Give payment gateway ID: `przelewy24`
 - Visual Donation Form Builder support
@@ -12,6 +12,8 @@ MVP implementation for one-time offsite donations:
 - Przelewy24 transaction registration
 - REST webhook endpoint for transaction verification
 - English source strings with Polish translation
+- sandbox payment flow tested successfully
+- production payment test pending Przelewy24 production domain whitelist
 
 ## Installation
 
@@ -97,6 +99,18 @@ If a donation stays `Pending`:
 - Check that sandbox credentials are used only in sandbox mode, and production credentials only in production mode.
 - Use **Test Przelewy24 API access** in the gateway settings.
 - Check `Donations > Tools > Logs` for Przelewy24 entries.
+
+## Production Readiness
+
+This gateway has been tested successfully with Przelewy24 sandbox payments.
+
+Before using production mode, confirm that:
+
+- the production Przelewy24 account is active,
+- the WordPress domain is whitelisted/configured in Przelewy24,
+- production Merchant ID, POS ID, API key / secretId and CRC key are entered,
+- **Test Przelewy24 API access** succeeds in production mode,
+- a small live payment is completed and verified end-to-end.
 
 ## Local Test Environment
 
