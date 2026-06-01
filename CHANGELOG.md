@@ -1,5 +1,9 @@
 # Changelog
 
+## v1.0.0-rc2 - 2026-06-01
+
+- Added defensive redaction for sensitive values in Przelewy24 log context.
+
 ## v1.0.0-rc1 - 2026-05-30
 
 Release candidate after successful sandbox payment testing.

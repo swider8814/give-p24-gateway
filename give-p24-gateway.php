@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Give Przelewy24 Gateway
  * Description: Przelewy24 payment gateway for GiveWP/Give donations.
- * Version: 1.0.0-rc1
+ * Version: 1.0.0-rc2
  * Requires at least: 6.0
  * Requires PHP: 7.2
  * Requires Plugins: give
@@ -24,7 +24,7 @@ use Give\Framework\PaymentGateways\PaymentGateway;
 
 const GIVE_P24_GATEWAY_OPTION = 'give_p24_gateway_options';
 const GIVE_P24_GATEWAY_LEGACY_OPTION = 'give_p24_options';
-const GIVE_P24_GATEWAY_VERSION = '1.0.0-rc1';
+const GIVE_P24_GATEWAY_VERSION = '1.0.0-rc2';
 
 register_activation_hook(__FILE__, 'give_p24_gateway_activate');
 add_filter('plugin_action_links_' . plugin_basename(__FILE__), 'give_p24_gateway_plugin_action_links');
@@ -421,8 +421,25 @@ function give_p24_gateway_settings_url(): string
     );
 }
 
+function give_p24_gateway_redact_log_context(array $context): array
+{
+    foreach ($context as $key => $value) {
+        if (preg_match('/(api[_-]?key|secret|crc|authorization|password|token)/i', (string) $key)) {
+            $context[$key] = '[redacted]';
+            continue;
+        }
+
+        if (is_array($value)) {
+            $context[$key] = give_p24_gateway_redact_log_context($value);
+        }
+    }
+
+    return $context;
+}
+
 function give_p24_gateway_log(string $message, array $context = [], string $type = 'info'): void
 {
+    $context = give_p24_gateway_redact_log_context($context);
     $line = $message . ($context ? ' ' . wp_json_encode($context, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : '');
 
     if (class_exists('\Give\Log\LogFactory') && in_array($type, ['error', 'warning', 'notice', 'success', 'info', 'debug'], true)) {
